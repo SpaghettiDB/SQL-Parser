@@ -9,14 +9,15 @@ package parser
 type SelectStmt struct {
     Tables     []string
     Columns    []string
-    Conditions string
+    Conditions []Condition
+    Limit        int
 }
 
 // UpdateStmt represents an UPDATE statement.
 type UpdateStmt struct {
     Table      string
     SetValues  map[string]interface{}
-    Conditions string
+    Conditions []Condition
 }
 
 
@@ -31,4 +32,14 @@ type InsertStmt struct {
 type DeleteStmt struct {
 	Table      string
 	Conditions string
+}
+
+type Drop struct {
+    Table string
+}
+
+type Condition struct {
+    Column string
+    Operator string
+    Value string
 }

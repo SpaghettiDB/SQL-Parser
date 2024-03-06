@@ -1,11 +1,11 @@
 package sqlparser
 
 import (
- "./sqlparser/parser.go"
+//  "sqlparser/parser.go"
 	"fmt"
 )
 
 func main() {
 
-	fmt.Println("Hello, World!")
+	fmt.Println("Test test ")
 }

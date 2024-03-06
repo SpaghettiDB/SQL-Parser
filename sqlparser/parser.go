@@ -20,7 +20,7 @@ type ParsedStmt interface {
 	// Methods to access the parsed statement
 	GetTables() []string     // GetTables returns the tables involved in the statement
 	GetColumns() []string    // GetColumns returns the columns referenced in the statement
-	GetConditions() string   // GetConditions returns the conditions specified in the statement
+	GetConditions() []Condition   // GetConditions returns the conditions specified in the statement
 }
 
 // inteface hold stmt 
@@ -31,17 +31,17 @@ type baseOperation interface {
 }
 
 
-// same for all other struct and interface definitions
-func (stmt *baseOperation) GetTables() []string {
-    return stmt.Tables
-}
+// // same for all other struct and interface definitions
+// func (stmt *baseOperation) GetTables() []string {
+//     return stmt.Tables
+// }
 
-func (stmt *SelectStmt) GetColumns() []string {
-    return stmt.Columns
-}
-func (stmt *SelectStmt) GetConditions() string {
-    return stmt.Conditions
-}
+// func (stmt *SelectStmt) GetColumns() []string {
+//     return stmt.Columns
+// }
+// func (stmt *SelectStmt) GetConditions() string {
+//     return stmt.Conditions
+// }
 
 // these statment can  be refactored to a stm base 
 
@@ -105,10 +105,26 @@ func (parser *SQLParser) syntaxCheck(tokens []Token) ([]Token, error) {
 // parse validates the token order and structure according to the chosen grammar.
 func (parser *SQLParser) parse(tokens []Token) (parsedStmt ParsedStmt, warnings []string, err error) {
 
+	return nil, nil, nil
 }
 
 // semanticAnalysis interprets the parsed structure and assigns meaning based on the schema.
-func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (parsedStmt ParsedStmt, warnings []string, err error) {
-	// Implement semantic analysis logic, resolving references, checking data types, handling constraints
-	// ...
+func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (res ParsedStmt, warnings []string, err error) {
+
+	// first we need to check if the table exists in the schema if not exist return error
+	// then we need to check if the column exists in the table if not exist return error
+	// then we need to check if the column is of the correct type if not return error
+	// check on the type of the query and if the query is valid or not 
+
+	
+		
+	return nil, nil, nil
+
+
+
 }
+
+
+
+// Todo 
+/**/

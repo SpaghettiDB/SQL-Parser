@@ -1,2 +1,74 @@
 # SQL-Parser
-This SQL Parser Repository aims to offer in-depth insights into SQL parsing, covering lexical analysis, syntax parsing, semantic validation, and query optimization. It's a work in progress, with ongoing updates planned to include detailed documentation, code examples, and practical exercises. 
+
+## Introduction
+
+This document describes the code for an SQL parser written in Go. The parser takes an SQL statement as input and performs the following tasks:
+
+- **Tokenization**: Breaks down the SQL string into individual tokens (keywords, identifiers, operators, constants).
+- **Syntax Checking**: Verifies the basic structure of the statement for errors like unmatched parentheses or missing semicolons.
+- **Parsing**: Validates the token order and structure according to the SQL grammar.
+- **Semantic Analysis**: Interprets the parsed structure and assigns meaning based on the provided schema information.
+
+## Dependencies
+
+The code relies on the following dependencies:
+
+- `errors` package for error handling
+- `fmt` package for formatting (used for debugging purposes)
+
+## Code Structure
+
+The code is organized into the following parts:
+
+- `parser` package: Contains the core parser logic.
+    - `Token` struct: Represents a parsed token with its type and value.
+    - `ParsedStmt` interface: Defines methods for accessing information from the parsed statement (query type, tables, columns, conditions).
+    - `baseOperation` interface: Base interface for parsed statements to share common methods.
+    - `SQLParser` struct: Manages the parsing process and holds the schema information.
+    - Various functions for:
+        - Parsing SQL statements (`ParseSQL`)
+        - Tokenizing the input string (`tokenize`)
+        - Performing syntax checks (`syntaxCheck`)
+        - Parsing token structure (`parse`)
+        - Performing semantic analysis (`semanticAnalysis`)
+- `schema.go` file (optional): Contains the `Schema` struct and related functions for loading schema information from a metadata file.
+
+## Key Functions
+
+- `NewSQLParser(schema Schema) *SQLParser`: Creates a new SQL parser instance with the provided schema. Option 1: Schema is loaded here.
+- `func (parser *SQLParser) ParseSQL(sql string) (parsedStmt ParsedStmt, warnings []string, err error)`: Parses the given SQL statement and returns the parsed representation, along with any warnings or errors encountered. Optionally accepts a schema name for multi-schema support.
+- `func (schema *Schema) Load(filename string) error`: Loads schema information from a metadata file. (Defined in `schema.go`)
+
+## Customization
+
+The schema loading approach can be configured:
+
+- Option 1 (default): Schema is loaded within the `NewSQLParser` constructor.
+- Option 2: A separate `LoadSchema` method is exposed to load the schema explicitly after creating the parser.
+
+Multi-schema support can be implemented by modifying the parser to manage and utilize multiple schema instances.
+
+## Usage
+```go
+
+// Option 1 (schema loaded in constructor)
+parser := NewSQLParser(schema) // Assuming schema is already defined
+
+parsedStmt, warnings, err := parser.ParseSQL(sql)
+if err != nil {
+  // Handle error
+}
+
+// Option 2 (schema loaded explicitly)
+parser := NewSQLParser()
+err := parser.LoadSchema("metadata.json")
+if err != nil {
+  // Handle error
+}
+
+parsedStmt, warnings, err := parser.ParseSQL(sql)
+if err != nil {
+  // Handle error
+}
+    
+    ```
