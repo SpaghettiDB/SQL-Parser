@@ -39,36 +39,33 @@ The code is organized into the following parts:
 - `func (parser *SQLParser) ParseSQL(sql string) (parsedStmt ParsedStmt, warnings []string, err error)`: Parses the given SQL statement and returns the parsed representation, along with any warnings or errors encountered. Optionally accepts a schema name for multi-schema support.
 - `func (schema *Schema) Load(filename string) error`: Loads schema information from a metadata file. (Defined in `schema.go`)
 
-## Customization
-
-The schema loading approach can be configured:
-
-- Option 1 (default): Schema is loaded within the `NewSQLParser` constructor.
-- Option 2: A separate `LoadSchema` method is exposed to load the schema explicitly after creating the parser.
-
-Multi-schema support can be implemented by modifying the parser to manage and utilize multiple schema instances.
-
 ## Usage
-```go
+``` // Option 1 (schema loaded in constructor)
+    parser := NewSQLParser(schema) // Assuming schema is already defined
 
-// Option 1 (schema loaded in constructor)
-parser := NewSQLParser(schema) // Assuming schema is already defined
+    parsedStmt, warnings, err := parser.ParseSQL(sql)
+    if err != nil {
+    // Handle error
+    }
 
-parsedStmt, warnings, err := parser.ParseSQL(sql)
-if err != nil {
-  // Handle error
-}
+    // Option 2 (schema loaded explicitly)
+    parser := NewSQLParser()
+    err := parser.LoadSchema("metadata.json")
+    if err != nil {
+    // Handle error
+    }
 
-// Option 2 (schema loaded explicitly)
-parser := NewSQLParser()
-err := parser.LoadSchema("metadata.json")
-if err != nil {
-  // Handle error
-}
+    parsedStmt, warnings, err := parser.ParseSQL(sql)
+    if err != nil {
+    // Handle error
+    }
+```
 
-parsedStmt, warnings, err := parser.ParseSQL(sql)
-if err != nil {
-  // Handle error
-}
-    
-    ```
+
+## To Do
+1. Multi-schema support to be implemented by modifying the parser to manage and utilize multiple schema instances.
+    - **appraoch:** just parse `use schema` statement and load the schema meta accordingly.
+2. Support for more SQL statements and clauses to be added.
+    - **appraoch:** add more methods to the `SQLParser` struct for parsing different types of statements.
+3. support for more SQL operations to be added like join, group by, order by etc.
+
