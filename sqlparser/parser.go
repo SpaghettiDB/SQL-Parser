@@ -26,24 +26,25 @@ type ParsedStmt interface {
 // inteface hold stmt 
 
 type baseOperation interface {
-    GetQueryType() string
-    GetTables() []string
+	GetQueryType() string
+	GetTables() []string
+	GetColumns() []string
+	GetConditions() []Condition
 }
 
-
-// // same for all other struct and interface definitions
+// same for all other struct and interface definitions
 // func (stmt *baseOperation) GetTables() []string {
-//     return stmt.Tables
+// 	return stmt.GetTables()
 // }
 
-// func (stmt *SelectStmt) GetColumns() []string {
-//     return stmt.Columns
-// }
-// func (stmt *SelectStmt) GetConditions() string {
-//     return stmt.Conditions
+// func (stmt *baseOperation) GetColumns() []string {
+// 	return stmt.GetColumns()
 // }
 
-// these statment can  be refactored to a stm base 
+// func (stmt *baseOperation) GetConditions() string {
+// 	return stmt.GetConditions()
+// }
+
 
 
 
