@@ -55,6 +55,7 @@ type SQLParser struct {
 
 // NewSQLParser creates a new SQLParser instance.
 func NewSQLParser(schema Schema) *SQLParser {
+	schema.LoadSchema( "schema.db")
 	return &SQLParser{Schema: schema}
 }
 

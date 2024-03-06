@@ -4,10 +4,12 @@ in the semantic analysis of the SQL statement.
 */
 
 package parser
+const schemaMetaFile = "schema.db" 
 
 // Schema represents the database schema information.
 type ISchema interface {
     // Methods to access tables, columns, data types, constraints, etc.
+    LoadSchema() error // LoadSchema loads the database schema
     GetTableColumns(tableName string) []string        // GetTableColumns returns columns of a given table
     GetColumnDataType(tableName, columnName string) string // GetColumnDataType returns data type of a column
 }
@@ -17,6 +19,21 @@ type Schema struct {
     Tables map[string][]string // Maps table names to column names
     // You can add more fields to represent constraints, data types, etc.
 }
+func (Schema *Schema) LoadSchema(SchemaName string) error {
+    // Implementation omitted for brevity, you would typically load schema metadata from the disk
+
+    // open the dir with the schema name and load the schema
+    // schemaDir := filepath.Join(schemaDir, schemaName)
+    // schemaFile := filepath.Join(schemaDir, schemaMetaFile)
+    // schemaData, err := ioutil.ReadFile(schemaFile)
+    // if err != nil {
+    //     return err
+    // }
+    return nil
+}
+
+
+
 
 // GetTableColumns returns the columns of a given table.
 func (schema *Schema) GetTableColumns(tableName string) []string {
