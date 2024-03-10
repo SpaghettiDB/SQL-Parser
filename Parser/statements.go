@@ -1,4 +1,4 @@
-package parser
+package sqlParser
 
 
 /* here we define the struct and interface definitions of the statments 

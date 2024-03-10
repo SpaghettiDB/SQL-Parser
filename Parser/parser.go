@@ -1,11 +1,11 @@
-package parser
+package sqlParser
 
 import (
 	"errors"
 	"fmt"
 )
 
-// some struct and interface definitions can be sperated into another file later on 
+// some struct and interface definitions can be separated into another file later on
 
 // Token represents a parsed token from the SQL statement.
 type Token struct {
@@ -13,17 +13,16 @@ type Token struct {
 	Value string // Value of the token
 }
 
-
 // ParsedStmt represents the parsed SQL statement.
 type ParsedStmt interface {
-    GetQueryType() string   // GetQueryType returns the type of the query (e.g., SELECT, INSERT, UPDATE, DELETE)
+	GetQueryType() string // GetQueryType returns the type of the query (e.g., SELECT, INSERT, UPDATE, DELETE)
 	// Methods to access the parsed statement
-	GetTables() []string     // GetTables returns the tables involved in the statement
-	GetColumns() []string    // GetColumns returns the columns referenced in the statement
-	GetConditions() []Condition   // GetConditions returns the conditions specified in the statement
+	GetTables() []string        // GetTables returns the tables involved in the statement
+	GetColumns() []string       // GetColumns returns the columns referenced in the statement
+	GetConditions() []Condition // GetConditions returns the conditions specified in the statement
 }
 
-// inteface hold stmt 
+// inteface hold stmt
 
 type baseOperation interface {
 	GetQueryType() string
@@ -45,9 +44,6 @@ type baseOperation interface {
 // 	return stmt.GetConditions()
 // }
 
-
-
-
 // SQLParser represents an SQL parser instance.
 type SQLParser struct {
 	Schema Schema
@@ -55,7 +51,7 @@ type SQLParser struct {
 
 // NewSQLParser creates a new SQLParser instance.
 func NewSQLParser(schema Schema) *SQLParser {
-	schema.LoadSchema( "schema.db")
+	schema.LoadSchema("schema.db")
 	return &SQLParser{Schema: schema}
 }
 
@@ -86,22 +82,22 @@ func (parser *SQLParser) ParseSQL(sql string) (parsedStmt ParsedStmt, warnings [
 func (parser *SQLParser) tokenize(sql string) ([]Token, error) {
 	// Implement tokenization logic using regular expressions or a state machine
 	// ...
-    return nil, nil
+	return nil, nil
 }
 
 // syntaxCheck checks for syntax errors in the SQL statement
 func (parser *SQLParser) syntaxCheck(tokens []Token) ([]Token, error) {
-    // Implement syntax checking logic, such as checking for unmatched parentheses, missing semicolons, etc.
-    // ...
+	// Implement syntax checking logic, such as checking for unmatched parentheses, missing semicolons, etc.
+	// ...
 
-    // Example of syntax error detection:
-    for _, token := range tokens {
-        if token.Type == "invalid" {
-            return []Token{{Value: token.Value}}, errors.New("Syntax error: Invalid token found")
-        }
-    }
+	// Example of syntax error detection:
+	for _, token := range tokens {
+		if token.Type == "invalid" {
+			return []Token{{Value: token.Value}}, errors.New("Syntax error: Invalid token found")
+		}
+	}
 
-    return nil, nil
+	return nil, nil
 }
 
 // parse validates the token order and structure according to the chosen grammar.
@@ -116,17 +112,19 @@ func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (res ParsedStmt
 	// first we need to check if the table exists in the schema if not exist return error
 	// then we need to check if the column exists in the table if not exist return error
 	// then we need to check if the column is of the correct type if not return error
-	// check on the type of the query and if the query is valid or not 
+	// check on the type of the query and if the query is valid or not
 
-	
-		
-	return nil, nil, nil
+	tables := parsedStmt.GetTables()
+	// columns := parsedStmt.GetColumns()
+	// conditions := parsedStmt.GetConditions()
 
+	// var warningsList []string
 
+	found := ContainsAll(parser.Schema.GetSchemaTables(), tables)
+	if !found {
+		return nil, nil, errors.New("Table does not exist")
+	}
 
+	return parsedStmt, nil, nil
 }
 
-
-
-// Todo 
-/**/

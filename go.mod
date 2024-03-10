@@ -1,3 +1,3 @@
-module parser
+module sqlParser
 
 go 1.22.0
