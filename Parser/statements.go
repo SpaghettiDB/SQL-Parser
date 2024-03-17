@@ -12,6 +12,7 @@ const (
     InsertQuery QueryType = "INSERT"
     UpdateQuery QueryType = "UPDATE"
     DeleteQuery QueryType = "DELETE"
+    CreateQuery QueryType = "CREATE"
     DropQuery   QueryType = "DROP"
 )
 
@@ -48,6 +49,10 @@ type Drop struct {
     Table string
 }
 
+type Create struct {
+    Table string
+    Columns []string
+}
 type Condition struct {
     Column string
     Operator string

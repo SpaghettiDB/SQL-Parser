@@ -2,7 +2,7 @@ package sqlParser
 
 
 // func Contains[T any](arr []any, element int) bool {
-func ContainsAll(arr []string, elements []string) bool {
+func ContainsAll(arr []string, elements []string) (bool, string) {
 	for _, element := range elements {
 		found := false
 		for _, value := range arr {
@@ -12,9 +12,9 @@ func ContainsAll(arr []string, elements []string) bool {
 			}
 		}
 		if !found {
-			return false
+			return false, element
 		}
 	}
-	return true
+	return true, ""
 }
 

@@ -60,9 +60,15 @@ The code is organized into the following parts:
     // Handle error
     }
 ```
+-----------------
+
+## To Do (short term urgent)
+1. support `*` in select statement.
+    approach: decide wether to be handled in the parser or in the semantic analysis or in the tokenization.
 
 
-## To Do
+
+## To Do (long term)
 1. Multi-schema support to be implemented by modifying the parser to manage and utilize multiple schema instances.
     - **appraoch:** just parse `use schema` statement and load the schema meta accordingly.
 2. Support for more SQL statements and clauses to be added.
