@@ -6,43 +6,18 @@ import (
 )
 
 // some struct and interface definitions can be separated into another file later on
-
-// Token represents a parsed token from the SQL statement.
 type Token struct {
-
-	Type  string // Type of the token (e.g., keyword, identifier, operator, constant)
-	Value string // Value of the token
+	Value string
+	Type  TokenType
 }
 
 // ParsedStmt represents the parsed SQL statement.
 type ParsedStmt interface {
-	GetQueryType() QueryType               // GetQueryType returns the type of the query (e.g., SELECT, INSERT, UPDATE, DELETE)
-	GetTables() []string                   // GetTables returns the tables involved in the statement
-	GetTableColumns(table string) []string // GetColumns returns the columns referenced in the statement
-	GetConditions() []Condition            // GetConditions returns the conditions specified in the statement
+	GetQueryType() QueryType       // GetQueryType returns the type of the query (e.g., SELECT, INSERT, UPDATE, DELETE)
+	GetTables() []string        // GetTables returns the tables involved in the statement
+	GetColumns() []string       // GetColumns returns the columns referenced in the statement
+	GetConditions() []Condition // GetConditions returns the conditions specified in the statement
 }
-
-// inteface hold stmt
-
-type baseOperation interface {
-	GetQueryType() string
-	GetTables() []string
-	GetColumns() []string
-	GetConditions() []Condition
-}
-
-// same for all other struct and interface definitions
-// func (stmt *baseOperation) GetTables() []string {
-// 	return stmt.GetTables()
-// }
-
-// func (stmt *baseOperation) GetColumns() []string {
-// 	return stmt.GetColumns()
-// }
-
-// func (stmt *baseOperation) GetConditions() string {
-// 	return stmt.GetConditions()
-// }
 
 // SQLParser represents an SQL parser instance.
 type SQLParser struct {
