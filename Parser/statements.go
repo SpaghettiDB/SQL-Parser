@@ -5,15 +5,6 @@ package sqlParser
  that we gonna use .
 */
 
-type QueryType string
-
-const (
-    SelectQuery QueryType = "SELECT"
-    InsertQuery QueryType = "INSERT"
-    UpdateQuery QueryType = "UPDATE"
-    DeleteQuery QueryType = "DELETE"
-    DropQuery   QueryType = "DROP"
-)
 
 // SelectStmt represents a SELECT statement.
 type SelectStmt struct {
