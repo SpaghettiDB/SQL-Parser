@@ -63,8 +63,14 @@ The code is organized into the following parts:
 -----------------
 
 ## To Do (short term urgent)
-1. support `*` in select statement.
-    approach: decide wether to be handled in the parser or in the semantic analysis or in the tokenization.
+### semantic analysis
+1. **support `*` in select statement.**
+   -  **approach:** decide wether to be handled in the parser or in the semantic analysis or in the tokenization.
+2. **support mulitple tables in the from clause.**
+   -  **approach:** ask the user to decide this column belongs to which table of them (first step to implmenting the joins).
+3. **support any conditions not just column with value.**
+   -  **approach:** make the condition more generic to support any condition.
+
 
 
 
