@@ -152,7 +152,6 @@ func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (res ParsedStmt
 	default:
 		return nil, errors.New("Invalid query type")
 	}
-	return parsedStmt, nil
 }
 
 func (parser *SQLParser) validateTableExistence(tables []string) error {
