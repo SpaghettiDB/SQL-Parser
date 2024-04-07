@@ -3,6 +3,7 @@ package sqlParser
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // some struct and interface definitions can be separated into another file later on
@@ -17,7 +18,7 @@ type ParsedStmt interface {
 	GetTables() []string        // GetTables returns the tables involved in the statement
 	GetColumns() []string       // GetColumns returns the columns referenced in the statement
 	GetConditions() []Condition // GetConditions returns the conditions specified in the statement
-	GetValues() []string   // GetValues returns the values specified in the statement
+	GetValues() []string        // GetValues returns the values specified in the statement
 }
 
 // SQLParser represents an SQL parser instance.
@@ -33,7 +34,7 @@ func NewSQLParser(schema Schema) *SQLParser {
 
 // ParseSQL parses the given SQL statement and returns the parsed representation.
 func (parser *SQLParser) ParseSQL(sql string) (parsedStmt ParsedStmt, err error) {
-	tokens, err := parser.tokenize(sql)
+	tokens, err := parser.Tokenize(sql)
 	if err != nil {
 		return nil, err
 	}
@@ -55,10 +56,50 @@ func (parser *SQLParser) ParseSQL(sql string) (parsedStmt ParsedStmt, err error)
 }
 
 // tokenize breaks down the SQL string into individual tokens.
-func (parser *SQLParser) tokenize(sql string) ([]Token, error) {
-	// Implement tokenization logic using regular expressions or a state machine
-	// ...
-	return nil, nil
+// tokenize breaks down the SQL string into individual tokens.
+// It returns a slice of tokens and an error if the tokenization fails.
+func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
+	sql = keyWordsToUpperCase(sql)
+
+	fmt.Println("sql : ", sql)
+	var tokens []Token
+
+	// get the first token from the input string reading from start to the first space
+	var firstStatement string = strings.Split(sql, " ")[0]
+
+	queryType, err := paresQueryType(firstStatement)
+
+	if err != nil {
+		return nil, errors.New("Invalid Query Type")
+	}
+
+	if queryType == SelectQuery {
+		//add the first token to the tokens list
+		tokens = append(tokens, Token{Type: "keyword", Value: string(queryType)})
+		//get the collection of column names
+		//get the substring that is between the first space and the first "FROM" keyword
+		var colsString string = strings.Split(sql, "FROM")[0]
+		//remove the first word from the string
+		colsString = strings.Replace(colsString, firstStatement, "", 1)
+		//remove the spaces from the string
+		colsString = strings.Replace(colsString, " ", "", -1)
+		//split the string by the comma
+		columns := strings.Split(colsString, ",")
+		//add the columns to the tokens list
+		for _, col := range columns {
+			tokens = append(tokens, Token{Type: "field", Value: col})
+		}
+		//get the substring after the first "FROM" keyword
+		var tablesString string = strings.Split(sql, "FROM")[1]
+		//split at where keyword
+		tablesString = strings.Split(tablesString, "WHERE")[0]
+		//trim the spaces
+		tablesString = strings.Replace(tablesString, " ", "", -1)
+		//add the table to the tokens list
+		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+	}
+
+	return tokens, nil
 }
 
 // syntaxCheck checks for syntax errors in the SQL statement
@@ -97,12 +138,12 @@ func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (res ParsedStmt
 	switch parsedStmt.GetQueryType() {
 	case SelectQuery:
 		// check if the columns exist in the table
-		err := parser.validateColumnExistence(tables,parsedStmt.GetColumns())
+		err := parser.validateColumnExistence(tables, parsedStmt.GetColumns())
 		if err != nil {
 			return nil, err
 		}
 		// check if the conditions exist in the table
-		err = parser.validateConditionExistence(tables,Conditions)
+		err = parser.validateConditionExistence(tables, Conditions)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +151,7 @@ func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (res ParsedStmt
 
 	case InsertQuery:
 		// check if the columns exist in the table
-		err := parser.validateColumnExistence(tables,parsedStmt.GetColumns())
+		err := parser.validateColumnExistence(tables, parsedStmt.GetColumns())
 		if err != nil {
 			return nil, err
 		}
@@ -122,19 +163,19 @@ func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (res ParsedStmt
 		return parsedStmt, nil
 
 	case UpdateQuery:
-		
-		err := parser.validateColumnExistence(tables,parsedStmt.GetColumns())
+
+		err := parser.validateColumnExistence(tables, parsedStmt.GetColumns())
 		if err != nil {
 			return nil, err
 		}
 
-		err = parser.validateConditionExistence(tables,Conditions)
+		err = parser.validateConditionExistence(tables, Conditions)
 		if err != nil {
 			return nil, err
 		}
 		// check if the values are of the correct type (TODO: implement this)
 
-		if len(parsedStmt.GetValues()) == 0 || (len(parsedStmt.GetValues()) != len(parsedStmt.GetColumns())){
+		if len(parsedStmt.GetValues()) == 0 || (len(parsedStmt.GetValues()) != len(parsedStmt.GetColumns())) {
 			return nil, errors.New("Values count does not match the columns count")
 		}
 		return parsedStmt, nil
@@ -168,44 +209,44 @@ func (parser *SQLParser) validateTableExistence(tables []string) error {
 	return nil
 }
 
-func (parser *SQLParser) validateColumnExistence(tables []string,columns []string) error {
+func (parser *SQLParser) validateColumnExistence(tables []string, columns []string) error {
 	for _, table := range tables {
 		tableColumns := parser.Schema.GetTableColumns(table)
 
 		if len(tableColumns) == 0 {
-			return  errors.New(fmt.Sprintf("Table %s has no columns", table))
+			return errors.New(fmt.Sprintf("Table %s has no columns", table))
 		}
 
-		if len(columns) == 1 &&columns[0] == "*" {
+		if len(columns) == 1 && columns[0] == "*" {
 			continue
 		}
-	
+
 		valid, column := ContainsAll(tableColumns, columns)
 
 		if !valid {
-			return  errors.New(fmt.Sprintf("Column %s does not exist in table", column))
+			return errors.New(fmt.Sprintf("Column %s does not exist in table", column))
 		}
 	}
 	return nil
 }
 
-func (parser *SQLParser) validateConditionExistence(tables []string,conditions []Condition) error {
+func (parser *SQLParser) validateConditionExistence(tables []string, conditions []Condition) error {
 	for _, table := range tables {
 		tableColumns := parser.Schema.GetTableColumns(table)
 
 		if len(tableColumns) == 0 {
-			return  errors.New(fmt.Sprintf("Table %s has no columns", table))
+			return errors.New(fmt.Sprintf("Table %s has no columns", table))
 		}
 
 		for _, condition := range conditions {
 			valid, column := ContainsAll(tableColumns, []string{condition.Column})
 			if !valid {
-				return  errors.New(fmt.Sprintf("Column %s in Condition does not exist in table", column))
+				return errors.New(fmt.Sprintf("Column %s in Condition does not exist in table", column))
 			}
 			// check if the operator is valid
 			valid, operator := ContainsAll([]string{"=", ">", "<", ">=", "<=", "!="}, []string{condition.Operator})
 			if !valid {
-				return  errors.New(fmt.Sprintf("Invalid operator %s in Condition", operator))
+				return errors.New(fmt.Sprintf("Invalid operator %s in Condition", operator))
 			}
 		}
 	}
