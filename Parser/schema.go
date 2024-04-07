@@ -18,7 +18,6 @@ type ISchema interface {
 // SampleSchema represents a sample database schema.
 type Schema struct {
 	Tables map[string][]string // Maps table names to column names
-
 }
 
 func (Schema *Schema) LoadSchema(SchemaName string) error {

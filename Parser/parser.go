@@ -3,6 +3,7 @@ package sqlParser
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // some struct and interface definitions can be separated into another file later on
@@ -57,7 +58,7 @@ func NewSQLParser(schema Schema) *SQLParser {
 
 // ParseSQL parses the given SQL statement and returns the parsed representation.
 func (parser *SQLParser) ParseSQL(sql string) (parsedStmt ParsedStmt, warnings []string, err error) {
-	tokens, err := parser.tokenize(sql)
+	tokens, err := parser.Tokenize(sql)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -79,10 +80,50 @@ func (parser *SQLParser) ParseSQL(sql string) (parsedStmt ParsedStmt, warnings [
 }
 
 // tokenize breaks down the SQL string into individual tokens.
-func (parser *SQLParser) tokenize(sql string) ([]Token, error) {
-	// Implement tokenization logic using regular expressions or a state machine
-	// ...
-	return nil, nil
+// tokenize breaks down the SQL string into individual tokens.
+// It returns a slice of tokens and an error if the tokenization fails.
+func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
+	sql = keyWordsToUpperCase(sql)
+
+	fmt.Println("sql : ", sql)
+	var tokens []Token
+
+	// get the first token from the input string reading from start to the first space
+	var firstStatement string = strings.Split(sql, " ")[0]
+
+	queryType, err := paresQueryType(firstStatement)
+
+	if err != nil {
+		return nil, errors.New("Invalid Query Type")
+	}
+
+	if queryType == SelectQuery {
+		//add the first token to the tokens list
+		tokens = append(tokens, Token{Type: "keyword", Value: string(queryType)})
+		//get the collection of column names
+		//get the substring that is between the first space and the first "FROM" keyword
+		var colsString string = strings.Split(sql, "FROM")[0]
+		//remove the first word from the string
+		colsString = strings.Replace(colsString, firstStatement, "", 1)
+		//remove the spaces from the string
+		colsString = strings.Replace(colsString, " ", "", -1)
+		//split the string by the comma
+		columns := strings.Split(colsString, ",")
+		//add the columns to the tokens list
+		for _, col := range columns {
+			tokens = append(tokens, Token{Type: "field", Value: col})
+		}
+		//get the substring after the first "FROM" keyword
+		var tablesString string = strings.Split(sql, "FROM")[1]
+		//split at where keyword
+		tablesString = strings.Split(tablesString, "WHERE")[0]
+		//trim the spaces
+		tablesString = strings.Replace(tablesString, " ", "", -1)
+		//add the table to the tokens list
+		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+	}
+
+	return tokens, nil
 }
 
 // syntaxCheck checks for syntax errors in the SQL statement
@@ -127,4 +168,3 @@ func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (res ParsedStmt
 
 	return parsedStmt, nil, nil
 }
-
