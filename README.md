@@ -60,9 +60,21 @@ The code is organized into the following parts:
     // Handle error
     }
 ```
+-----------------
+
+## To Do (short term urgent)
+### semantic analysis
+1. **support `*` in select statement.**
+   -  **approach:** decide wether to be handled in the parser or in the semantic analysis or in the tokenization.
+2. **support mulitple tables in the from clause.**
+   -  **approach:** ask the user to decide this column belongs to which table of them (first step to implmenting the joins).
+3. **support any conditions not just column with value.**
+   -  **approach:** make the condition more generic to support any condition.
 
 
-## To Do
+
+
+## To Do (long term)
 1. Multi-schema support to be implemented by modifying the parser to manage and utilize multiple schema instances.
     - **appraoch:** just parse `use schema` statement and load the schema meta accordingly.
 2. Support for more SQL statements and clauses to be added.

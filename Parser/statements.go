@@ -5,16 +5,6 @@ package sqlParser
  that we gonna use .
 */
 
-type QueryType string
-
-const (
-    SelectQuery QueryType = "SELECT"
-    InsertQuery QueryType = "INSERT"
-    UpdateQuery QueryType = "UPDATE"
-    DeleteQuery QueryType = "DELETE"
-    DropQuery   QueryType = "DROP"
-)
-
 // SelectStmt represents a SELECT statement.
 type SelectStmt struct {
     Tables     []string
@@ -48,6 +38,10 @@ type Drop struct {
     Table string
 }
 
+type Create struct {
+    Table string
+    Columns []string
+}
 type Condition struct {
     Column string
     Operator string
