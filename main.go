@@ -9,7 +9,7 @@ func main() {
 	// create a schema instance from sqlParser package
 	schema := sqlParser.Schema{}
 	parser := sqlParser.NewSQLParser(schema)
-	tokens, err := parser.Tokenize("select name,age , ali FROM users WHERE id = 1")
+	tokens, err := parser.Tokenize("UPDATE Customers SET ContactName = 'Alfred Schmidt', age= 30 WHERE CustomerID = 1;")
 	if err != nil {
 		panic(err)
 	}

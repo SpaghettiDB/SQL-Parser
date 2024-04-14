@@ -70,24 +70,27 @@ func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 	queryType, err := paresQueryType(firstStatement)
 
 	if err != nil {
-		return nil, errors.New("Invalid Query Type")
+		return nil, errors.New("invalid query type")
 	}
 
-	if queryType == SelectQuery {
-		//add the first token to the tokens list
-		tokens = append(tokens, Token{Type: "keyword", Value: string(queryType)})
+	//add the first token to the tokens list
+	tokens = append(tokens, Token{Type: "keyword", Value: firstStatement})
+	//remove the first word from the string
+	sql = strings.Replace(sql, firstStatement, "", 1)
+
+	switch queryType {
+	case SelectQuery: 
+		// SELECT col1, col2, ... FROM table_name WHERE condition;
 		//get the collection of column names
 		//get the substring that is between the first space and the first "FROM" keyword
 		var colsString string = strings.Split(sql, "FROM")[0]
-		//remove the first word from the string
-		colsString = strings.Replace(colsString, firstStatement, "", 1)
 		//remove the spaces from the string
 		colsString = strings.Replace(colsString, " ", "", -1)
 		//split the string by the comma
 		columns := strings.Split(colsString, ",")
 		//add the columns to the tokens list
 		for _, col := range columns {
-			tokens = append(tokens, Token{Type: "field", Value: col})
+			tokens = append(tokens, Token{Type: "column", Value: col})
 		}
 		//get the substring after the first "FROM" keyword
 		var tablesString string = strings.Split(sql, "FROM")[1]
@@ -97,6 +100,41 @@ func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 		tablesString = strings.Replace(tablesString, " ", "", -1)
 		//add the table to the tokens list
 		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+
+		condition := parseCondition(sql)
+		tokens = append(tokens, Token{Type: "condition", Value: condition})
+
+	case DeleteQuery: 
+		// DELETE FROM table_name WHERE condition;
+		var tablesString string = strings.Split(sql, "FROM")[1]
+		tablesString = strings.Split(tablesString, "WHERE")[0]
+		tablesString = strings.Replace(tablesString, " ", "", -1)
+		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+
+		condition := parseCondition(sql)
+		tokens = append(tokens, Token{Type: "condition", Value: condition})
+
+	case UpdateQuery:
+		// UPDATE table_name SET col1 = value1, col2 = value2, ... WHERE condition;
+		var tablesString string = strings.Split(sql, "SET")[0]
+		tablesString = strings.Replace(tablesString, " ", "", -1)
+		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+
+		var colsString string = strings.Split(sql, "SET")[1]
+		colsString = strings.Split(colsString, "WHERE")[0]
+		colsString = strings.Replace(colsString, " ", "", -1)
+		columns := strings.Split(colsString, ",")
+
+		for _, col := range columns {
+			val := strings.Split(col, "=")[1]
+			col = strings.Split(col, "=")[0]
+			tokens = append(tokens, Token{Type: "column", Value: col})
+			tokens = append(tokens, Token{Type: "value", Value: val})
+		}
+
+		condition := parseCondition(sql)
+		tokens = append(tokens, Token{Type: "condition", Value: condition})
+		
 	}
 
 	return tokens, nil
@@ -251,4 +289,13 @@ func (parser *SQLParser) validateConditionExistence(tables []string, conditions 
 		}
 	}
 	return nil
+}
+
+func parseCondition(sql string) string {
+	// get the substring after the first "WHERE" keyword
+	var conditionString string = strings.Split(sql, "WHERE")[1]
+	conditionString = strings.Replace(conditionString, ";", "", -1)
+	conditionString = strings.Replace(conditionString, " ", "", -1)
+	
+	return conditionString
 }
