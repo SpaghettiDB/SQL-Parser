@@ -14,6 +14,7 @@ const (
 	KeywordToken   TokenType = "keyword"
 	ValueToken     TokenType = "value"
 	OperatorToken  TokenType = "operator"
+	IndexToken     TokenType = "index"
 )
 
 type QueryType string
@@ -24,6 +25,7 @@ const (
 	UpdateQuery QueryType = "UPDATE"
 	DeleteQuery QueryType = "DELETE"
 	DropQuery   QueryType = "DROP"
+	CreateQuery QueryType = "CREATE"
 )
 
 func ContainsAll(arr []string, elements []string) (bool, string) {
@@ -46,17 +48,18 @@ func paresQueryType(queryType string) (QueryType, error) {
 	//this should work with upper and lower case
 	queryType = strings.ToUpper(queryType)
 	switch queryType {
-	case "SELECT", "INSERT", "UPDATE", "DELETE", "DROP":
+	case "SELECT", "INSERT", "UPDATE", "DELETE", "DROP", "CREATE":
 		return QueryType(queryType), nil
 	default:
-		return "", errors.New("Invalid query type")
+		return "", errors.New("invalid query type")
 	}
 }
 
 func isKeyword(word string) bool {
 	//check if the word is a keyword
 	word = strings.ToUpper(word)
-	return word == "SELECT" || word == "FROM" || word == "WHERE" || word == "INSERT" || word == "UPDATE" || word == "DELETE" || word == "DROP"
+	return word == "SELECT" || word == "FROM" || word == "WHERE" || word == "INSERT" || word == "UPDATE" || word == "DELETE" || word == "DROP" 
+	
 }
 
 func keyWordsToUpperCase(query string) string {
@@ -68,4 +71,10 @@ func keyWordsToUpperCase(query string) string {
 		}
 	}
 	return strings.Join(words, " ")
+}
+
+// fucn to refine the name of the field 
+func refineFieldName(name string) string {
+	// remove the ; and the spaces and the commas
+	return strings.Trim(name, ";,()[] ")
 }

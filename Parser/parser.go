@@ -59,8 +59,7 @@ func (parser *SQLParser) ParseSQL(sql string) (parsedStmt ParsedStmt, err error)
 // tokenize breaks down the SQL string into individual tokens.
 // It returns a slice of tokens and an error if the tokenization fails.
 func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
-	sql = keyWordsToUpperCase(sql)
-
+	sql = strings.ToUpper(sql)
 	fmt.Println("sql : ", sql)
 	var tokens []Token
 
@@ -79,90 +78,147 @@ func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 	sql = strings.Replace(sql, firstStatement, "", 1)
 
 	switch queryType {
-	case SelectQuery: 
-		// SELECT col1, col2, ... FROM table_name WHERE condition;
-		//get the collection of column names
-		//get the substring that is between the first space and the first "FROM" keyword
-		var colsString string = strings.Split(sql, "FROM")[0]
-		//remove the spaces from the string
-		colsString = strings.Replace(colsString, " ", "", -1)
-		//split the string by the comma
-		columns := strings.Split(colsString, ",")
-		//add the columns to the tokens list
-		for _, col := range columns {
-			tokens = append(tokens, Token{Type: "column", Value: col})
-		}
-		//get the substring after the first "FROM" keyword
-		var tablesString string = strings.Split(sql, "FROM")[1]
-		//split at where keyword
-		tablesString = strings.Split(tablesString, "WHERE")[0]
-		//trim the spaces
-		tablesString = strings.Replace(tablesString, " ", "", -1)
-		//add the table to the tokens list
-		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+		case SelectQuery: 
+			// SELECT col1, col2, ... FROM table_name WHERE condition;
+			//get the collection of column names
+			//get the substring that is between the first space and the first "FROM" keyword
+			var colsString string = strings.Split(sql, "FROM")[0]
+			//remove the spaces from the string
+			colsString = strings.Replace(colsString, " ", "", -1)
+			//split the string by the comma
+			columns := strings.Split(colsString, ",")
+			//add the columns to the tokens list
+			for _, col := range columns {
+				tokens = append(tokens, Token{Type: "column", Value: col})
+			}
+			//get the substring after the first "FROM" keyword
+			var tablesString string = strings.Split(sql, "FROM")[1]
+			//split at where keyword
+			tablesString = strings.Split(tablesString, "WHERE")[0]
+			//trim the spaces
+			tablesString = strings.Replace(tablesString, " ", "", -1)
+			//add the table to the tokens list
+			tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-		tokens = parseCondition(tokens, sql)
+			tokens = parseCondition(tokens, sql)
 
-	case DeleteQuery: 
-		// DELETE FROM table_name WHERE condition;
-		var tablesString string = strings.Split(sql, "FROM")[1]
-		tablesString = strings.Split(tablesString, "WHERE")[0]
-		tablesString = strings.Replace(tablesString, " ", "", -1)
-		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+		case DeleteQuery: 
+			// DELETE FROM table_name WHERE condition;
+			var tablesString string = strings.Split(sql, "FROM")[1]
+			tablesString = strings.Split(tablesString, "WHERE")[0]
+			tablesString = strings.Replace(tablesString, " ", "", -1)
+			tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-		tokens = parseCondition(tokens, sql)
+			tokens = parseCondition(tokens, sql)
 
-	case UpdateQuery:
-		// UPDATE table_name SET col1 = value1, col2 = value2, ... WHERE condition;
-		var tablesString string = strings.Split(sql, "SET")[0]
-		tablesString = strings.Replace(tablesString, " ", "", -1)
-		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+		case UpdateQuery:
+			// UPDATE table_name SET col1 = value1, col2 = value2, ... WHERE condition;
+			var tablesString string = strings.Split(sql, "SET")[0]
+			tablesString = strings.Replace(tablesString, " ", "", -1)
+			tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-		var colsString string = strings.Split(sql, "SET")[1]
-		colsString = strings.Split(colsString, "WHERE")[0]
-		colsString = strings.Replace(colsString, " ", "", -1)
-		columns := strings.Split(colsString, ",")
+			var colsString string = strings.Split(sql, "SET")[1]
+			colsString = strings.Split(colsString, "WHERE")[0]
+			colsString = strings.Replace(colsString, " ", "", -1)
+			columns := strings.Split(colsString, ",")
 
-		for _, col := range columns {
-			val := strings.Split(col, "=")[1]
-			col = strings.Split(col, "=")[0]
-			tokens = append(tokens, Token{Type: "column", Value: col})
-			tokens = append(tokens, Token{Type: "value", Value: val})
-		}
+			for _, col := range columns {
+				val := strings.Split(col, "=")[1]
+				col = strings.Split(col, "=")[0]
+				tokens = append(tokens, Token{Type: "column", Value: col})
+				tokens = append(tokens, Token{Type: "value", Value: val})
+			}
 
-		tokens = parseCondition(tokens, sql)
+			tokens = parseCondition(tokens, sql)
 
-	case InsertQuery:
-		// INSERT INTO table_name (col1, col2, ...) VALUES (value1, value2, ...);
-		var tablesString string = strings.Split(sql, "INTO")[1]
-		tablesString = strings.Split(tablesString, "(")[0]
-		tablesString = strings.Replace(tablesString, " ", "", -1)
-		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+		case InsertQuery:
+			// INSERT INTO table_name (col1, col2, ...) VALUES (value1, value2, ...);
+			var tablesString string = strings.Split(sql, "INTO")[1]
+			tablesString = strings.Split(tablesString, "(")[0]
+			tablesString = strings.Replace(tablesString, " ", "", -1)
+			tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-		var colsString string = strings.Split(sql, "(")[1]
-		colsString = strings.Split(colsString, ")")[0]
-		colsString = strings.Replace(colsString, " ", "", -1)
-		columns := strings.Split(colsString, ",")
+			var colsString string = strings.Split(sql, "(")[1]
+			colsString = strings.Split(colsString, ")")[0]
+			colsString = strings.Replace(colsString, " ", "", -1)
+			columns := strings.Split(colsString, ",")
 
-		var valuesString string = strings.Split(sql, "VALUES")[1]
-		valuesString = strings.Split(valuesString, "(")[1]
-		valuesString = strings.Split(valuesString, ")")[0]
-		valuesString = strings.Replace(valuesString, " ", "", -1)
-		values := strings.Split(valuesString, ",")
+			var valuesString string = strings.Split(sql, "VALUES")[1]
+			valuesString = strings.Split(valuesString, "(")[1]
+			valuesString = strings.Split(valuesString, ")")[0]
+			valuesString = strings.Replace(valuesString, " ", "", -1)
+			values := strings.Split(valuesString, ",")
 
-		if len(columns) != len(values) {
-			return nil, errors.New("invalid number of columns and values")
-		}
+			if len(columns) != len(values) {
+				return nil, errors.New("invalid number of columns and values")
+			}
 
-		for i := range columns {
-			tokens = append(tokens, Token{Type: "column", Value: columns[i]})
-			tokens = append(tokens, Token{Type: "value", Value: values[i]})
-		}
+			for i := range columns {
+				tokens = append(tokens, Token{Type: "column", Value: columns[i]})
+				tokens = append(tokens, Token{Type: "value", Value: values[i]})
+			}
+			
+		case DropQuery:
+			words := strings.Fields(sql);
+			if len(words) > 2 {
+				return nil, errors.New("invalid DROP statement")
+			}
+			dropType := words[0]
+			switch dropType {
+				case "TABLE":
+					tableName := words[1]
+					tokens = append(tokens, Token{Type: "table", Value: refineFieldName(tableName)})
+				case "INDEX":
+					indexName := words[1]
+					tokens = append(tokens, Token{Type: "index", Value: refineFieldName(indexName)})
+				default:
+					return nil, errors.New("invalid DROP statement")
+			}
+
+		case CreateQuery:
+			words := strings.Fields(sql);
+			CreateType := words[0]
+			switch CreateType {
+				case "TABLE":
+					tableName := words[1]
+					tokens = append(tokens, Token{Type: "table", Value: refineFieldName(tableName)})
+
+					var colsString string = strings.Split(sql, "(")[1]
+					colsString = strings.Split(colsString, ")")[0]
+					colsString = strings.Replace(colsString, " ", "", -1)
+					columns := strings.Split(colsString, ",")
+
+					for _, col := range columns {
+						tokens = append(tokens, Token{Type: "column", Value: refineFieldName(col)})
+					}	
+
+				case "INDEX":
+					indexName := words[1]
+					tokens = append(tokens, Token{Type: "index", Value: refineFieldName(indexName)})
+
+					var tableName string = strings.Split(sql, "ON")[1]
+					tableName = strings.Split(tableName, "(")[0]
+					tokens = append(tokens, Token{Type: "table", Value: refineFieldName(tableName)})
+					
+					var colsString string = strings.Split(sql, "(")[1]
+					colsString = strings.Split(colsString, ")")[0]
+					colsString = strings.Replace(colsString, " ", "", -1)
+					columns := strings.Split(colsString, ",")
+
+					for _, col := range columns {
+						tokens = append(tokens, Token{Type: "column", Value: refineFieldName(col)})
+					}
+				default:
+					return nil, errors.New("invalid CREATE statement :(")
+
+				}
+
+		default:
+			return nil, errors.New("unsupported query type yet :(")
 	}
 
 	return tokens, nil
 }
-
 // syntaxCheck checks for syntax errors in the SQL statement
 func (parser *SQLParser) syntaxCheck(tokens []Token) ([]Token, error) {
 	// Implement syntax checking logic, such as checking for unmatched parentheses, missing semicolons, etc.
