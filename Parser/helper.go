@@ -13,6 +13,7 @@ const (
 	ConditionToken TokenType = "condition"
 	KeywordToken   TokenType = "keyword"
 	ValueToken     TokenType = "value"
+	OperatorToken  TokenType = "operator"
 )
 
 type QueryType string

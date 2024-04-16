@@ -101,8 +101,7 @@ func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 		//add the table to the tokens list
 		tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-		condition := parseCondition(sql)
-		tokens = append(tokens, Token{Type: "condition", Value: condition})
+		tokens = parseCondition(tokens, sql)
 
 	case DeleteQuery: 
 		// DELETE FROM table_name WHERE condition;
@@ -111,8 +110,7 @@ func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 		tablesString = strings.Replace(tablesString, " ", "", -1)
 		tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-		condition := parseCondition(sql)
-		tokens = append(tokens, Token{Type: "condition", Value: condition})
+		tokens = parseCondition(tokens, sql)
 
 	case UpdateQuery:
 		// UPDATE table_name SET col1 = value1, col2 = value2, ... WHERE condition;
@@ -132,9 +130,7 @@ func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 			tokens = append(tokens, Token{Type: "value", Value: val})
 		}
 
-		condition := parseCondition(sql)
-		tokens = append(tokens, Token{Type: "condition", Value: condition})
-		
+		tokens = parseCondition(tokens, sql)
 	}
 
 	return tokens, nil
@@ -291,11 +287,31 @@ func (parser *SQLParser) validateConditionExistence(tables []string, conditions 
 	return nil
 }
 
-func parseCondition(sql string) string {
+func parseCondition(token []Token, sql string) []Token {
 	// get the substring after the first "WHERE" keyword
+	// WHERE condition1 AND condition2 AND condition3 ...;
 	var conditionString string = strings.Split(sql, "WHERE")[1]
 	conditionString = strings.Replace(conditionString, ";", "", -1)
-	conditionString = strings.Replace(conditionString, " ", "", -1)
-	
-	return conditionString
+
+	// split the string by the AND or OR keyword
+	andConditions := strings.Split(strings.ToLower(conditionString), "and")
+	orConditions := strings.Split(strings.ToLower(conditionString), "or")
+
+	if len(andConditions) > 1 {
+		for _, cond := range andConditions {
+			token = append(token, Token{Type: "condition", Value: strings.Replace(cond, " ", "", -1)})
+			token = append(token, Token{Type: "operator", Value: "AND"})
+		}
+		token = token[:len(token)-1]
+	} else if len(orConditions) > 1 {
+		for _, cond := range orConditions {
+			token = append(token, Token{Type: "condition", Value: strings.Replace(cond, " ", "", -1)})
+			token = append(token, Token{Type: "operator", Value: "OR"})
+		}
+		token = token[:len(token)-1]
+	} else {
+		token = append(token, Token{Type: "condition", Value: strings.Replace(conditionString, " ", "", -1)})
+	}
+
+	return token
 }
