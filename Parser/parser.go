@@ -131,6 +131,33 @@ func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 		}
 
 		tokens = parseCondition(tokens, sql)
+
+	case InsertQuery:
+		// INSERT INTO table_name (col1, col2, ...) VALUES (value1, value2, ...);
+		var tablesString string = strings.Split(sql, "INTO")[1]
+		tablesString = strings.Split(tablesString, "(")[0]
+		tablesString = strings.Replace(tablesString, " ", "", -1)
+		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+
+		var colsString string = strings.Split(sql, "(")[1]
+		colsString = strings.Split(colsString, ")")[0]
+		colsString = strings.Replace(colsString, " ", "", -1)
+		columns := strings.Split(colsString, ",")
+
+		var valuesString string = strings.Split(sql, "VALUES")[1]
+		valuesString = strings.Split(valuesString, "(")[1]
+		valuesString = strings.Split(valuesString, ")")[0]
+		valuesString = strings.Replace(valuesString, " ", "", -1)
+		values := strings.Split(valuesString, ",")
+
+		if len(columns) != len(values) {
+			return nil, errors.New("invalid number of columns and values")
+		}
+
+		for i := range columns {
+			tokens = append(tokens, Token{Type: "column", Value: columns[i]})
+			tokens = append(tokens, Token{Type: "value", Value: values[i]})
+		}
 	}
 
 	return tokens, nil
