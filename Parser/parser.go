@@ -418,7 +418,12 @@ func (parser *SQLParser) validateConditionExistence(tables []string, conditions 
 						return fmt.Errorf("invalid operator %s in Condition", operator)
 					}
 				case operator:
-
+					valid, operator := ContainsAll([]string{"AND", "OR"}, []string{elem.operator})
+					if !valid {
+						return fmt.Errorf("invalid operator %s", operator)
+					}
+				default: 
+					return fmt.Errorf("invalid condition type")
 			}
 		}
 	}
