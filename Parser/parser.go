@@ -236,6 +236,34 @@ func (parser *SQLParser) syntaxCheck(tokens []Token) ([]Token, error) {
 
 // parse validates the token order and structure according to the chosen grammar.
 func (parser *SQLParser) parse(tokens []Token) (parsedStmt ParsedStmt, err error) {
+	// Implement parsing logic to convert tokens into a ParsedStmt object.
+	var queryType QueryType
+	var tables []string
+	var columns []string
+	var conditions []Condition
+	var values []string
+
+	for _, token := range tokens {
+		switch token.Type {
+			case "keyword":
+				queryType, err = paresQueryType(token.Value)
+				if err != nil {
+					return nil, err
+				}
+			case "table":
+				tables = append(tables, token.Value)
+			case "column":
+				columns = append(columns, token.Value)
+			case "condition":
+				condition := parseCondition(token.Value)
+				conditions = append(conditions, condition)
+			case "value":
+				values = append(values, token.Value)
+			default:
+				return nil, errors.New("Invalid token type")
+		}
+
+
 
 	return nil, nil
 }
