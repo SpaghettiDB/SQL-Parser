@@ -5,7 +5,7 @@ in the semantic analysis of the SQL statement.
 
 package sqlParser
 
-const schemaMetaFile = "schema.db"
+// const schemaMetaFile = "schema.db"
 
 // Schema represents the database schema information.
 type ISchema interface {
