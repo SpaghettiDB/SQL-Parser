@@ -12,13 +12,12 @@ type Token struct {
 	Type  TokenType
 }
 
-// ParsedStmt represents the parsed SQL statement.
-type ParsedStmt interface {
-	GetQueryType() QueryType    // GetQueryType returns the type of the query (e.g., SELECT, INSERT, UPDATE, DELETE)
-	GetTables() []string        // GetTables returns the tables involved in the statement
-	GetColumns() []string       // GetColumns returns the columns referenced in the statement
-	GetConditions() []Condition // GetConditions returns the conditions specified in the statement
-	GetValues() []string        // GetValues returns the values specified in the statement
+type ParsedStmt struct {
+	QueryType  QueryType     // Type of the query (e.g., SELECT, INSERT, UPDATE, DELETE)
+	Tables     []string      // Tables involved in the statement
+	Columns    []string      // Columns referenced in the statement
+	Values     []string      // Values specified in the statement
+	Conditions []interface{} // Conditions and operators specified in the statement
 }
 
 // SQLParser represents an SQL parser instance.
@@ -34,30 +33,32 @@ func NewSQLParser(schema Schema) *SQLParser {
 
 // ParseSQL parses the given SQL statement and returns the parsed representation.
 func (parser *SQLParser) ParseSQL(sql string) (parsedStmt ParsedStmt, err error) {
+
 	tokens, err := parser.Tokenize(sql)
 	if err != nil {
-		return nil, err
+		return ParsedStmt{}, err
 	}
 
-	tokenError, err := parser.syntaxCheck(tokens)
-
+	tokenError, err := parser.validateSyntax(tokens)
 	if err != nil {
-		return nil, err
+		return ParsedStmt{}, err
 	}
-	// remove it
+
 	fmt.Println("Tokens: ", tokenError)
 
-	parsedStmt, err = parser.parse(tokens)
+	parsedStmtPtr, err := parser.parse(tokens)
 	if err != nil {
-		return nil, err
+		return ParsedStmt{}, err
 	}
 
-	return parser.semanticAnalysis(parsedStmt)
+	parsedStmt, err = parser.semanticAnalysis(*parsedStmtPtr)
+	if err != nil {
+		return ParsedStmt{}, err
+	}
+
+	return parsedStmt, nil
 }
 
-// tokenize breaks down the SQL string into individual tokens.
-// tokenize breaks down the SQL string into individual tokens.
-// It returns a slice of tokens and an error if the tokenization fails.
 func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 	sql = strings.ToUpper(sql)
 	fmt.Println("sql : ", sql)
@@ -78,156 +79,156 @@ func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 	sql = strings.Replace(sql, firstStatement, "", 1)
 
 	switch queryType {
-		case SelectQuery: 
-			// SELECT col1, col2, ... FROM table_name WHERE condition;
-			//get the collection of column names
-			//get the substring that is between the first space and the first "FROM" keyword
-			var colsString string = strings.Split(sql, "FROM")[0]
-			//remove the spaces from the string
-			colsString = strings.Replace(colsString, " ", "", -1)
-			//split the string by the comma
-			columns := strings.Split(colsString, ",")
-			//add the columns to the tokens list
-			for _, col := range columns {
-				tokens = append(tokens, Token{Type: "column", Value: col})
-			}
-			//get the substring after the first "FROM" keyword
-			var tablesString string = strings.Split(sql, "FROM")[1]
-			//split at where keyword
-			tablesString = strings.Split(tablesString, "WHERE")[0]
-			//trim the spaces
-			tablesString = strings.Replace(tablesString, " ", "", -1)
-			//add the table to the tokens list
-			tokens = append(tokens, Token{Type: "table", Value: tablesString})
+	case SelectQuery:
+		// SELECT col1, col2, ... FROM table_name WHERE condition;
+		//get the collection of column names
+		//get the substring that is between the first space and the first "FROM" keyword
+		var colsString string = strings.Split(sql, "FROM")[0]
+		//remove the spaces from the string
+		colsString = strings.Replace(colsString, " ", "", -1)
+		//split the string by the comma
+		columns := strings.Split(colsString, ",")
+		//add the columns to the tokens list
+		for _, col := range columns {
+			tokens = append(tokens, Token{Type: "column", Value: col})
+		}
+		//get the substring after the first "FROM" keyword
+		var tablesString string = strings.Split(sql, "FROM")[1]
+		//split at where keyword
+		tablesString = strings.Split(tablesString, "WHERE")[0]
+		//trim the spaces
+		tablesString = strings.Replace(tablesString, " ", "", -1)
+		//add the table to the tokens list
+		tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-			tokens = parseCondition(tokens, sql)
+		tokens = parseCondition(tokens, sql)
 
-		case DeleteQuery: 
-			// DELETE FROM table_name WHERE condition;
-			var tablesString string = strings.Split(sql, "FROM")[1]
-			tablesString = strings.Split(tablesString, "WHERE")[0]
-			tablesString = strings.Replace(tablesString, " ", "", -1)
-			tokens = append(tokens, Token{Type: "table", Value: tablesString})
+	case DeleteQuery:
+		// DELETE FROM table_name WHERE condition;
+		var tablesString string = strings.Split(sql, "FROM")[1]
+		tablesString = strings.Split(tablesString, "WHERE")[0]
+		tablesString = strings.Replace(tablesString, " ", "", -1)
+		tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-			tokens = parseCondition(tokens, sql)
+		tokens = parseCondition(tokens, sql)
 
-		case UpdateQuery:
-			// UPDATE table_name SET col1 = value1, col2 = value2, ... WHERE condition;
-			var tablesString string = strings.Split(sql, "SET")[0]
-			tablesString = strings.Replace(tablesString, " ", "", -1)
-			tokens = append(tokens, Token{Type: "table", Value: tablesString})
+	case UpdateQuery:
+		// UPDATE table_name SET col1 = value1, col2 = value2, ... WHERE condition;
+		var tablesString string = strings.Split(sql, "SET")[0]
+		tablesString = strings.Replace(tablesString, " ", "", -1)
+		tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-			var colsString string = strings.Split(sql, "SET")[1]
-			colsString = strings.Split(colsString, "WHERE")[0]
-			colsString = strings.Replace(colsString, " ", "", -1)
-			columns := strings.Split(colsString, ",")
+		var colsString string = strings.Split(sql, "SET")[1]
+		colsString = strings.Split(colsString, "WHERE")[0]
+		colsString = strings.Replace(colsString, " ", "", -1)
+		columns := strings.Split(colsString, ",")
 
-			for _, col := range columns {
-				val := strings.Split(col, "=")[1]
-				col = strings.Split(col, "=")[0]
-				tokens = append(tokens, Token{Type: "column", Value: col})
-				tokens = append(tokens, Token{Type: "value", Value: val})
-			}
+		for _, col := range columns {
+			val := strings.Split(col, "=")[1]
+			col = strings.Split(col, "=")[0]
+			tokens = append(tokens, Token{Type: "column", Value: col})
+			tokens = append(tokens, Token{Type: "value", Value: val})
+		}
 
-			tokens = parseCondition(tokens, sql)
+		tokens = parseCondition(tokens, sql)
 
-		case InsertQuery:
-			// INSERT INTO table_name (col1, col2, ...) VALUES (value1, value2, ...);
-			var tablesString string = strings.Split(sql, "INTO")[1]
-			tablesString = strings.Split(tablesString, "(")[0]
-			tablesString = strings.Replace(tablesString, " ", "", -1)
-			tokens = append(tokens, Token{Type: "table", Value: tablesString})
+	case InsertQuery:
+		// INSERT INTO table_name (col1, col2, ...) VALUES (value1, value2, ...);
+		var tablesString string = strings.Split(sql, "INTO")[1]
+		tablesString = strings.Split(tablesString, "(")[0]
+		tablesString = strings.Replace(tablesString, " ", "", -1)
+		tokens = append(tokens, Token{Type: "table", Value: tablesString})
+
+		var colsString string = strings.Split(sql, "(")[1]
+		colsString = strings.Split(colsString, ")")[0]
+		colsString = strings.Replace(colsString, " ", "", -1)
+		columns := strings.Split(colsString, ",")
+
+		var valuesString string = strings.Split(sql, "VALUES")[1]
+		valuesString = strings.Split(valuesString, "(")[1]
+		valuesString = strings.Split(valuesString, ")")[0]
+		valuesString = strings.Replace(valuesString, " ", "", -1)
+		values := strings.Split(valuesString, ",")
+
+		if len(columns) != len(values) {
+			return nil, errors.New("invalid number of columns and values")
+		}
+
+		for i := range columns {
+			tokens = append(tokens, Token{Type: "column", Value: columns[i]})
+			tokens = append(tokens, Token{Type: "value", Value: values[i]})
+		}
+
+	case DropQuery:
+		words := strings.Fields(sql)
+		if len(words) > 2 {
+			return nil, errors.New("invalid DROP statement")
+		}
+		dropType := words[0]
+		switch dropType {
+		case "TABLE":
+			tableName := words[1]
+			tokens = append(tokens, Token{Type: "table", Value: refineFieldName(tableName)})
+		case "INDEX":
+			indexName := words[1]
+			tokens = append(tokens, Token{Type: "index", Value: refineFieldName(indexName)})
+		default:
+			return nil, errors.New("invalid DROP statement")
+		}
+
+	case CreateQuery:
+		words := strings.Fields(sql)
+		CreateType := words[0]
+		switch CreateType {
+		case "TABLE":
+			tableName := words[1]
+			tokens = append(tokens, Token{Type: "table", Value: refineFieldName(tableName)})
 
 			var colsString string = strings.Split(sql, "(")[1]
 			colsString = strings.Split(colsString, ")")[0]
 			colsString = strings.Replace(colsString, " ", "", -1)
 			columns := strings.Split(colsString, ",")
 
-			var valuesString string = strings.Split(sql, "VALUES")[1]
-			valuesString = strings.Split(valuesString, "(")[1]
-			valuesString = strings.Split(valuesString, ")")[0]
-			valuesString = strings.Replace(valuesString, " ", "", -1)
-			values := strings.Split(valuesString, ",")
-
-			if len(columns) != len(values) {
-				return nil, errors.New("invalid number of columns and values")
+			for _, col := range columns {
+				tokens = append(tokens, Token{Type: "column", Value: refineFieldName(col)})
 			}
 
-			for i := range columns {
-				tokens = append(tokens, Token{Type: "column", Value: columns[i]})
-				tokens = append(tokens, Token{Type: "value", Value: values[i]})
+		case "INDEX":
+			indexName := words[1]
+			tokens = append(tokens, Token{Type: "index", Value: refineFieldName(indexName)})
+
+			var tableName string = strings.Split(sql, "ON")[1]
+			tableName = strings.Split(tableName, "(")[0]
+			tokens = append(tokens, Token{Type: "table", Value: refineFieldName(tableName)})
+
+			var colsString string = strings.Split(sql, "(")[1]
+			colsString = strings.Split(colsString, ")")[0]
+			colsString = strings.Replace(colsString, " ", "", -1)
+			columns := strings.Split(colsString, ",")
+
+			for _, col := range columns {
+				tokens = append(tokens, Token{Type: "column", Value: refineFieldName(col)})
 			}
-			
-		case DropQuery:
-			words := strings.Fields(sql);
-			if len(words) > 2 {
-				return nil, errors.New("invalid DROP statement")
-			}
-			dropType := words[0]
-			switch dropType {
-				case "TABLE":
-					tableName := words[1]
-					tokens = append(tokens, Token{Type: "table", Value: refineFieldName(tableName)})
-				case "INDEX":
-					indexName := words[1]
-					tokens = append(tokens, Token{Type: "index", Value: refineFieldName(indexName)})
-				default:
-					return nil, errors.New("invalid DROP statement")
-			}
-
-		case CreateQuery:
-			words := strings.Fields(sql);
-			CreateType := words[0]
-			switch CreateType {
-				case "TABLE":
-					tableName := words[1]
-					tokens = append(tokens, Token{Type: "table", Value: refineFieldName(tableName)})
-
-					var colsString string = strings.Split(sql, "(")[1]
-					colsString = strings.Split(colsString, ")")[0]
-					colsString = strings.Replace(colsString, " ", "", -1)
-					columns := strings.Split(colsString, ",")
-
-					for _, col := range columns {
-						tokens = append(tokens, Token{Type: "column", Value: refineFieldName(col)})
-					}	
-
-				case "INDEX":
-					indexName := words[1]
-					tokens = append(tokens, Token{Type: "index", Value: refineFieldName(indexName)})
-
-					var tableName string = strings.Split(sql, "ON")[1]
-					tableName = strings.Split(tableName, "(")[0]
-					tokens = append(tokens, Token{Type: "table", Value: refineFieldName(tableName)})
-					
-					var colsString string = strings.Split(sql, "(")[1]
-					colsString = strings.Split(colsString, ")")[0]
-					colsString = strings.Replace(colsString, " ", "", -1)
-					columns := strings.Split(colsString, ",")
-
-					for _, col := range columns {
-						tokens = append(tokens, Token{Type: "column", Value: refineFieldName(col)})
-					}
-				default:
-					return nil, errors.New("invalid CREATE statement :(")
-
-				}
-
 		default:
-			return nil, errors.New("unsupported query type yet :(")
+			return nil, errors.New("invalid CREATE statement :(")
+
+		}
+
+	default:
+		return nil, errors.New("unsupported query type yet :(")
 	}
 
 	return tokens, nil
 }
-// syntaxCheck checks for syntax errors in the SQL statement
-func (parser *SQLParser) syntaxCheck(tokens []Token) ([]Token, error) {
+
+func (parser *SQLParser) validateSyntax(tokens []Token) ([]Token, error) {
 	// Implement syntax checking logic, such as checking for unmatched parentheses, missing semicolons, etc.
 	// ...
 
 	// Example of syntax error detection:
 	for _, token := range tokens {
 		if token.Type == "invalid" {
-			return []Token{{Value: token.Value}}, errors.New("Syntax error: Invalid token found")
+			return []Token{{Value: token.Value}}, errors.New("syntax error: Invalid token found")
 		}
 	}
 
@@ -235,72 +236,121 @@ func (parser *SQLParser) syntaxCheck(tokens []Token) ([]Token, error) {
 }
 
 // parse validates the token order and structure according to the chosen grammar.
-func (parser *SQLParser) parse(tokens []Token) (parsedStmt ParsedStmt, err error) {
+func (parser *SQLParser) parse(tokens []Token) (parsedStmt *ParsedStmt, err error) {
+	// Implement parsing logic to convert tokens into a ParsedStmt object.
+	var queryType QueryType
+	var tables []string
+	var columns []string
+	var values []string
+	var conditionsAndOperators []interface{}
 
-	return nil, nil
+	for _, token := range tokens {
+		switch token.Type {
+
+		case "keyword":
+			queryType, err = paresQueryType(token.Value)
+			if err != nil {
+				return nil, err
+			}
+
+		case "table":
+			tables = append(tables, token.Value)
+
+		case "column":
+			columns = append(columns, token.Value)
+
+		case "condition":
+
+			words := strings.Fields(token.Value)
+			if len(words) != 3 {
+				return nil, errors.New("syntax Error: Invalid condition")
+			}
+			condition := Condition{Column: words[0], Operator: words[1], Value: words[2]}
+			conditionsAndOperators = append(conditionsAndOperators, condition)
+
+		case "operator":
+			op := operator{operator: token.Value}
+			conditionsAndOperators = append(conditionsAndOperators, op)
+
+		case "value":
+			values = append(values, token.Value)
+		default:
+			return nil, errors.New("syntax Error: Invalid token type")
+		}
+
+	}
+
+	parsedStmt = &ParsedStmt{
+		QueryType:  queryType,
+		Tables:     tables,
+		Columns:    columns,
+		Values:     values,
+		Conditions: conditionsAndOperators,
+	}
+	return parsedStmt, nil
 }
 
 // semanticAnalysis interprets the parsed structure and assigns meaning based on the schema.
 func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (res ParsedStmt, err error) {
 
-	tables := parsedStmt.GetTables()
-	Conditions := parsedStmt.GetConditions()
+	tables := parsedStmt.Tables
+	Conditions := parsedStmt.Conditions
 
 	// check if the tables exist in the schema
 	err = parser.validateTableExistence(tables)
 	if err != nil {
-		return nil, err
+		return ParsedStmt{}, err
 	}
 
-	switch parsedStmt.GetQueryType() {
+	switch parsedStmt.QueryType {
 	case SelectQuery:
 		// check if the columns exist in the table
-		err := parser.validateColumnExistence(tables, parsedStmt.GetColumns())
+		err := parser.validateColumnExistence(tables, parsedStmt.Columns)
 		if err != nil {
-			return nil, err
+			return ParsedStmt{}, err
 		}
 		// check if the conditions exist in the table
 		err = parser.validateConditionExistence(tables, Conditions)
 		if err != nil {
-			return nil, err
+			return ParsedStmt{}, err
 		}
 		return parsedStmt, nil
 
 	case InsertQuery:
 		// check if the columns exist in the table
-		err := parser.validateColumnExistence(tables, parsedStmt.GetColumns())
+		err := parser.validateColumnExistence(tables, parsedStmt.Columns)
 		if err != nil {
-			return nil, err
+			return ParsedStmt{}, err
 		}
 		// check if the values count is equal to the columns count
-		if len(parsedStmt.GetColumns()) != len(parsedStmt.GetValues()) {
-			return nil, errors.New("Values count does not match the columns count")
+		if len(parsedStmt.GetColumns()) != len(parsedStmt.Values) {
+			return ParsedStmt{}, errors.New("values count does not match the columns count")
 		}
 		// check if the values are of the correct type (TODO: implement this)
 		return parsedStmt, nil
 
 	case UpdateQuery:
 
-		err := parser.validateColumnExistence(tables, parsedStmt.GetColumns())
+		err := parser.validateColumnExistence(tables, parsedStmt.Columns)
 		if err != nil {
-			return nil, err
+			return ParsedStmt{}, err
 		}
 
 		err = parser.validateConditionExistence(tables, Conditions)
 		if err != nil {
-			return nil, err
+			return ParsedStmt{}, err
 		}
 		// check if the values are of the correct type (TODO: implement this)
 
-		if len(parsedStmt.GetValues()) == 0 || (len(parsedStmt.GetValues()) != len(parsedStmt.GetColumns())) {
-			return nil, errors.New("Values count does not match the columns count")
+		if len(parsedStmt.GetValues()) == 0 || (len(parsedStmt.GetValues()) != len(parsedStmt.Columns)) {
+			return ParsedStmt{}, errors.New("values count does not match the columns count")
 		}
 		return parsedStmt, nil
 
 	case DeleteQuery:
 		err = parser.validateConditionExistence(tables, Conditions)
 		if err != nil {
-			return nil, err
+			return ParsedStmt{}, err
 		}
 		return parsedStmt, nil
 
@@ -308,20 +358,20 @@ func (parser *SQLParser) semanticAnalysis(parsedStmt ParsedStmt) (res ParsedStmt
 		return parsedStmt, nil
 
 	default:
-		return nil, errors.New("Invalid query type")
+		return ParsedStmt{}, errors.New("invalid query type")
 	}
 }
 
 func (parser *SQLParser) validateTableExistence(tables []string) error {
 
 	if len(tables) == 0 {
-		return errors.New("No tables specified")
+		return fmt.Errorf("no tables specified")
 	}
 
 	valid, table := ContainsAll(parser.Schema.GetSchemaTables(), tables)
 
 	if !valid {
-		return errors.New(fmt.Sprintf("Table %s does not exist in the schema", table))
+		return fmt.Errorf("table %s does not exist in the schema", table)
 	}
 	return nil
 }
@@ -331,7 +381,7 @@ func (parser *SQLParser) validateColumnExistence(tables []string, columns []stri
 		tableColumns := parser.Schema.GetTableColumns(table)
 
 		if len(tableColumns) == 0 {
-			return errors.New(fmt.Sprintf("Table %s has no columns", table))
+			return fmt.Errorf("table %s has no columns", table)
 		}
 
 		if len(columns) == 1 && columns[0] == "*" {
@@ -341,29 +391,39 @@ func (parser *SQLParser) validateColumnExistence(tables []string, columns []stri
 		valid, column := ContainsAll(tableColumns, columns)
 
 		if !valid {
-			return errors.New(fmt.Sprintf("Column %s does not exist in table", column))
+			return fmt.Errorf("column %s does not exist in table", column)
 		}
 	}
 	return nil
 }
 
-func (parser *SQLParser) validateConditionExistence(tables []string, conditions []Condition) error {
+func (parser *SQLParser) validateConditionExistence(tables []string, conditions []interface{}) error {
 	for _, table := range tables {
 		tableColumns := parser.Schema.GetTableColumns(table)
 
 		if len(tableColumns) == 0 {
-			return errors.New(fmt.Sprintf("Table %s has no columns", table))
+			return fmt.Errorf("table %s has no columns", table)
 		}
 
-		for _, condition := range conditions {
-			valid, column := ContainsAll(tableColumns, []string{condition.Column})
-			if !valid {
-				return errors.New(fmt.Sprintf("Column %s in Condition does not exist in table", column))
-			}
-			// check if the operator is valid
-			valid, operator := ContainsAll([]string{"=", ">", "<", ">=", "<=", "!="}, []string{condition.Operator})
-			if !valid {
-				return errors.New(fmt.Sprintf("Invalid operator %s in Condition", operator))
+		for _, item := range conditions {
+			switch elem := item.(type) {
+				case Condition:
+					valid, column := ContainsAll(tableColumns, []string{elem.Column})
+					if !valid {
+						return fmt.Errorf("column %s in Condition does not exist in table", column)
+					}
+					// check if the operator is valid
+					valid, operator := ContainsAll([]string{"=", ">", "<", ">=", "<=", "!="}, []string{elem.Operator})
+					if !valid {
+						return fmt.Errorf("invalid operator %s in Condition", operator)
+					}
+				case operator:
+					valid, operator := ContainsAll([]string{"AND", "OR"}, []string{elem.operator})
+					if !valid {
+						return fmt.Errorf("invalid operator %s", operator)
+					}
+				default: 
+					return fmt.Errorf("invalid condition type")
 			}
 		}
 	}
