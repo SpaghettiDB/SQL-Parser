@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	sqlParser "sqlParser/Parser"
+	sqlParser "github.com/SpaghettiDB/SQL-Parser/Parser"
 )
 
 func main() {
