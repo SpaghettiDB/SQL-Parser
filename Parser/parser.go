@@ -93,55 +93,131 @@ func (parser *SQLParser) Tokenize(sql string) ([]Token, error) {
 			}
 			//get the substring after the first "FROM" keyword
 			var tablesString string = strings.Split(sql, "FROM")[1]
-			//split at where keyword
-			tablesString = strings.Split(tablesString, "WHERE")[0]
-			//trim the spaces
-			tablesString = strings.Replace(tablesString, " ", "", -1)
-			//add the table to the tokens list
-			tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-			tokens = parseCondition(tokens, sql)
+			whereKeyword := strings.Split(tablesString, "WHERE")
+			if len(whereKeyword) > 1 {
+				//split at where keyword
+				tablesString = strings.Split(tablesString, "WHERE")[0]
+				tablesString = strings.Trim(tablesString, " ")
+				if len(strings.Split(tablesString, " ")) > 1 {
+					return nil, errors.New("invalid table name in SELECT statement")
+				}
+				
+				if len(tablesString) == 0 {
+					return nil, errors.New("missing table name in SELECT statement")
+				}
+				//add the table to the tokens list
+				tokens = append(tokens, Token{Type: "table", Value: tablesString})
+				//parse the conditions
+				tokens, err = parseCondition(tokens, sql)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				tablesString = strings.Trim(tablesString, " ")
+				if len(strings.Split(tablesString, " ")) > 1 {
+					return nil, errors.New("invalid table name in SELECT statement")
+				}
+				if len(tablesString) == 0 {
+					return nil, errors.New("missing table name in SELECT statement")
+				}
+				tablesString = strings.Replace(tablesString, ";", "", -1)
+				//add the table to the tokens list
+				tokens = append(tokens, Token{Type: "table", Value: tablesString})
+			}
 
 		case DeleteQuery: 
 			// DELETE FROM table_name WHERE condition;
 			var tablesString string = strings.Split(sql, "FROM")[1]
+			if len(tablesString) == 0 {
+				return nil, errors.New("missing table name in DELETE statement")
+			}
 			tablesString = strings.Split(tablesString, "WHERE")[0]
-			tablesString = strings.Replace(tablesString, " ", "", -1)
+			tablesString = strings.Trim(tablesString, " ")
+			if len(strings.Split(tablesString, " ")) > 1 {
+				return nil, errors.New("invalid table name in DELETE statement")
+			}
+
+			if len(tablesString) == 0 {
+				return nil, errors.New("missing table name in DELETE statement")
+			}
 			tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
-			tokens = parseCondition(tokens, sql)
+			tokens, err = parseCondition(tokens, sql)
+			if err != nil {
+				return nil, err
+			}
 
 		case UpdateQuery:
 			// UPDATE table_name SET col1 = value1, col2 = value2, ... WHERE condition;
 			var tablesString string = strings.Split(sql, "SET")[0]
-			tablesString = strings.Replace(tablesString, " ", "", -1)
+
+			tablesString = strings.Trim(tablesString, " ")
+			if len(strings.Split(tablesString, " ")) > 1 {
+				return nil, errors.New("invalid table name in UPDATE statement")
+			}
+
+			if len(tablesString) == 0 {
+				return nil, errors.New("missing table name in UPDATE statement")
+			}
 			tokens = append(tokens, Token{Type: "table", Value: tablesString})
 
 			var colsString string = strings.Split(sql, "SET")[1]
 			colsString = strings.Split(colsString, "WHERE")[0]
+
+			if len(colsString) == 0 {
+				return nil, errors.New("missing columns in UPDATE statement")
+			}
 			colsString = strings.Replace(colsString, " ", "", -1)
 			columns := strings.Split(colsString, ",")
 
 			for _, col := range columns {
+				operator := strings.Split(col, "=")
+				if len(operator) != 2 {
+					return nil, errors.New("invalid column value pair in UPDATE statement")
+				}
 				val := strings.Split(col, "=")[1]
 				col = strings.Split(col, "=")[0]
 				tokens = append(tokens, Token{Type: "column", Value: col})
 				tokens = append(tokens, Token{Type: "value", Value: val})
 			}
 
-			tokens = parseCondition(tokens, sql)
+			tokens, err = parseCondition(tokens, sql)
+			if err != nil {
+				return nil, err
+			}
 
 		case InsertQuery:
 			// INSERT INTO table_name (col1, col2, ...) VALUES (value1, value2, ...);
+			parenthesis := strings.Split(sql, "(")
+			if len(parenthesis) < 3 {
+				return nil, errors.New("missing parenthesis in INSERT statement")
+			}
 			var tablesString string = strings.Split(sql, "INTO")[1]
 			tablesString = strings.Split(tablesString, "(")[0]
+			tablesString = strings.Trim(tablesString, " ")
+			if len(strings.Split(tablesString, " ")) > 1 {
+				return nil, errors.New("invalid table name in INSERT statement")
+			}
+
 			tablesString = strings.Replace(tablesString, " ", "", -1)
+			if len(tablesString) == 0 {
+				return nil, errors.New("missing table name in INSERT statement")
+			}
 			tokens = append(tokens, Token{Type: "table", Value: tablesString})
+
+			parenthesis = strings.Split(sql, ")")
+			if len(parenthesis) < 3 {
+				return nil, errors.New("missing parenthesis in INSERT statement")
+			}
 
 			var colsString string = strings.Split(sql, "(")[1]
 			colsString = strings.Split(colsString, ")")[0]
 			colsString = strings.Replace(colsString, " ", "", -1)
 			columns := strings.Split(colsString, ",")
+			if len(columns) == 0 {
+				return nil, errors.New("missing columns in INSERT statement")
+			}
 
 			var valuesString string = strings.Split(sql, "VALUES")[1]
 			valuesString = strings.Split(valuesString, "(")[1]
@@ -370,11 +446,15 @@ func (parser *SQLParser) validateConditionExistence(tables []string, conditions 
 	return nil
 }
 
-func parseCondition(token []Token, sql string) []Token {
+func parseCondition(token []Token, sql string) ([]Token, error) {
 	// get the substring after the first "WHERE" keyword
 	// WHERE condition1 AND condition2 AND condition3 ...;
 	var conditionString string = strings.Split(sql, "WHERE")[1]
+	conditionString = strings.Replace(conditionString, " ", "", -1)
 	conditionString = strings.Replace(conditionString, ";", "", -1)
+	if len(conditionString) == 0 {
+		return nil, errors.New("missing condition in WHERE clause")
+	}
 
 	// split the string by the AND or OR keyword
 	andConditions := strings.Split(strings.ToLower(conditionString), "and")
@@ -396,5 +476,5 @@ func parseCondition(token []Token, sql string) []Token {
 		token = append(token, Token{Type: "condition", Value: strings.Replace(conditionString, " ", "", -1)})
 	}
 
-	return token
+	return token, nil
 }
