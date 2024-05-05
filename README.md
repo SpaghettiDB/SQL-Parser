@@ -70,6 +70,8 @@ The code is organized into the following parts:
    -  **approach:** ask the user to decide this column belongs to which table of them (first step to implmenting the joins).
 3. **support any conditions not just column with value.**
    -  **approach:** make the condition more generic to support any condition.
+4- **support if exist in the drop table statement.**
+   -  **approach:** add the support for the if exist in the drop table statement. 
 
 
 

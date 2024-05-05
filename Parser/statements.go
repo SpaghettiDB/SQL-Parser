@@ -47,3 +47,7 @@ type Condition struct {
     Operator string
     Value string
 }
+
+type operator struct {
+    operator string
+}
