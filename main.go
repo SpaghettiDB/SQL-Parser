@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	sqlParser "sqlParser/Parser"
 	"strings"
+	sqlParser "github.com/SpaghettiDB/SQL-Parser/Parser"
 )
 
 func main() {
