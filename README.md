@@ -77,9 +77,7 @@ The code is organized into the following parts:
 
 
 ## To Do (long term)
-1. Multi-schema support to be implemented by modifying the parser to manage and utilize multiple schema instances.
-    - **appraoch:** just parse `use schema` statement and load the schema meta accordingly.
-2. Support for more SQL statements and clauses to be added.
+1. Support for more SQL statements and clauses to be added.
     - **appraoch:** add more methods to the `SQLParser` struct for parsing different types of statements.
-3. support for more SQL operations to be added like join, group by, order by etc.
+2. support for more SQL operations to be added like join, group by, order by etc.
 
